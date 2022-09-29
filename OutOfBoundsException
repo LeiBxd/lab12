@@ -1,0 +1,8 @@
+package lab12;
+public class OutOfBoundsException extends RuntimeException // Класс, показывающий ошибку
+{
+    public String toString()
+    {
+        return("ERROR");
+    }
+}
