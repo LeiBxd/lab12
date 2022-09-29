@@ -1,0 +1,37 @@
+package lab12;
+public class Main
+{
+    public static void main(String[] args)
+    {
+        ListString myString = new ListString("1234567890 Lorem Ipsum - это текст-рыба, часто используемый в печати и вэб-дизайне"); // Создание строки.
+        System.out.println(myString); // Печать строки.
+        myString.insert(15,"(zxc)"); // Вставка надписи в указанное место в строке.
+        System.out.println(myString); // Печать строки.
+        System.out.println(myString.substring(15, 40)); // Печать подстроки.
+        System.out.println(myString.substring(16)); // Печать подстроки cо стартовой позиции.
+
+
+        ListString myString2 = new ListString("WOOOOW"); // Создание второй строки.
+        System.out.println(myString); // Печать строки.
+        System.out.println("Длина начальной строки: " + myString.length()); // Печать длины строки.
+        System.out.println("Символ №3: " + myString.charAt(2)); // Печать третьего символа в строке.
+        myString.setCharAt(2, 'G'); // Замена третьего символа в строке
+        System.out.println(myString); // Печать результата.
+        System.out.println("Подстрока с 3 по 5: " + myString.substring(2, 5)); // Печать подстроки с третьего по пятый символ.
+        System.out.println(myString.substring(40)); // Печать подстроки c позиции 41.
+        myString.insert(5,"(words)"); // Вставка надписи на место шестого элемента в строке.
+        System.out.println(myString); // Печать результата.
+        myString.insert(5, myString2); // Вставка ListString на место шестого элемента в строке.
+        System.out.println(myString); // Печать результата.
+        myString.append("(more words)"); // Вставка надписи в конец строки.
+        System.out.println(myString); // Печать результата.
+        myString.append('Q'); // Вставка символа в конец строки.
+        System.out.println(myString); // Печать результата.
+        myString.append(myString2); // Вставка ListString в конец строки.
+        System.out.println(myString); // Печать результата.
+        System.out.println("итоговая длина строки: " + myString.length()); // Печать итоговой длины строки.
+        System.out.println("Символ " + myString.charAt(20)); // Для вывода об ошибке.
+
+
+    }
+}
