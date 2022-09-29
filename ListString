@@ -1,0 +1,373 @@
+package lab12;
+public class ListString
+{
+    public ListString()
+    {
+        head = null;
+    }
+
+    public ListString(String string) // Реализация строки через список.
+    {
+        head = new StringItem(); // Создание начального блока.
+        StringItem currentItem = head;
+
+        char[] stringArr = string.toCharArray();
+
+        int sum = 0;
+        while (sum + StringItem.SIZE <= stringArr.length) // Разбиение строки на части и создание блоков.
+        {   
+            currentItem.arrayString = new char[16];
+            currentItem.size = (byte)StringItem.SIZE;
+            
+            copyArray(stringArr, currentItem.arrayString, sum, sum + (StringItem.SIZE-1), 0);
+           
+            if (sum + StringItem.SIZE < string.length())
+            {
+                currentItem.next = new StringItem();
+                currentItem = currentItem.next;
+                sum += StringItem.SIZE;
+            }
+            else
+            {
+                sum += StringItem.SIZE;
+                break;
+            }
+        }
+        if (sum == stringArr.length)
+            return;
+
+        currentItem.arrayString = new char[16];
+        currentItem.size = (byte)(stringArr.length - sum);
+
+        copyArray(stringArr, currentItem.arrayString, sum, sum + (currentItem.size-1), 0);
+    }
+
+    public ListString(ListString listString) // Создание строки (ListString) на основе строки (ListString), копируя данные.
+    {
+        StringItem currentItem = listString.head;
+        if (currentItem == null)
+        {
+            head = null;
+            return;
+        }
+        head = new StringItem(currentItem, 0, currentItem.size - 1);
+        StringItem createdCurrentItem = head;
+        while (currentItem.next != null)
+        {
+            createdCurrentItem.next = new StringItem(currentItem.next,0,currentItem.next.size - 1);
+            currentItem = currentItem.next;
+            createdCurrentItem = createdCurrentItem.next;
+        }
+    }
+
+    public char charAt(int n) // Возвращает символ на заданной позиции.
+    {
+        Coordinate position = convert(n); // Поиск блока и индекса относительно него.
+        if (position.item == null) // Проверка объекта поиска на корректность (не выходит ли index за границы блока).
+            throw new OutOfBoundsException();
+        return (position.item.arrayString[position.index]);
+    }
+
+    public void setCharAt(int index, char symbol) // Замена символа на позиции на какой-либо заданный.
+    {
+        Coordinate position = convert(index); // Поиск блока.
+        if (position.item == null) // Проверка объекта поиска на корректность (не выходит ли index за границы блока).
+            throw new OutOfBoundsException();
+        position.item.arrayString[position.index] = symbol; // Замена символа в найденном блоке.
+    }
+
+    public int length() // Определение длины строки.
+    {
+        int sum = 0;
+        StringItem currentItem = head;
+        while (currentItem != null)
+        {
+            if (currentItem.next != null)
+            {
+                if (currentItem.size + currentItem.next.size > StringItem.SIZE)
+                {
+                    sum += currentItem.size;
+                    currentItem = currentItem.next;
+                }
+                else // Если суммарная длина текущего и следующего блоков меньше или равна 16, то они склеиваются.
+                {
+                    currentItem.mergeWithNextItem();
+                }
+            }
+            else
+            {
+                sum += currentItem.size;
+                break;
+            }
+        }
+        return sum;
+    }
+
+    public void append(char symbol) // Добавляет символ в конец строки.
+    {
+        StringItem lastItem = lastItem();
+        if (empty()) // Если строка пустая.
+        {
+            head = new StringItem();
+            head.arrayString[0] = symbol;
+            head.size = 1;
+            return;
+        }
+        if (lastItem.size == StringItem.SIZE) // Если последний блок полный.
+        {
+            lastItem.next = new StringItem();
+            lastItem.next.arrayString[0] = symbol;
+            lastItem.next.size = 1;
+        }
+        else // Если есть место в последнем блоке.
+        {
+            lastItem.arrayString[lastItem.size] = symbol;
+            lastItem.size += 1;
+        }
+    }
+
+    public ListString substring(int start, int end) // Возвращает подстроку по заданным индексам начала и конца (конец не входит).
+    {
+        return subListString(start, end);
+    }
+
+    public ListString substring(int start) // Возвращает подстроку с заданного индекса начала до конца строки.
+    {
+        return subListString(start, length());
+    }
+
+    public void append(String string) // Добавляет строку (String) в конец.
+    {
+        ListString copied = new ListString(string);
+        appendListString(copied);
+    }
+
+    public void append(ListString listString) // Добавляет строку (ListString) в конец.
+    {
+        ListString copied = new ListString(listString);
+        appendListString(copied);
+    }
+
+    public void insert(int index, ListString string) // Добавляет строку (ListString) в указанную позицию.
+    {
+        Coordinate position = convert(index);
+        if (position.item == null)
+            throw new OutOfBoundsException();
+        ListString copied = new ListString(string);
+        insertListString(index, copied);
+    }
+
+    public void insert(int index, String string) // Добавляет строку (String) в указанную позицию.
+    {
+        Coordinate position = convert(index);
+        if (position.item == null)
+            throw new OutOfBoundsException();
+        ListString copied = new ListString(string);
+        insertListString(index, copied);
+    }
+
+    @Override
+    public String toString() // Метод возвращает цельную строку, собранную из блоков.
+    {
+        char[] arrayString = new char[length()];
+        int arraySize = 0;
+        StringItem currentItem = head;
+        while (currentItem != null)
+        {
+            copyArray(currentItem.arrayString, arrayString, 0, currentItem.size - 1, arraySize);
+            arraySize += currentItem.size;
+            currentItem = currentItem.next;
+        }
+        return new String(arrayString);
+
+    }
+
+    private void insertListString(int index, ListString listString) // Обобщенный метод вставки строки (ListString) в указанное место.
+    {
+        if (index == 0)
+        {
+            if (head == null) // В начало пустой строки.
+            {
+                head = listString.head;
+            }
+            else // В начало не пустой строки.
+            {
+                listString.lastItem().next = head;
+                head = listString.head;
+            }
+        }
+        else if(index >= length()-1){ //если index в конце, или болше вставляем строку в конец
+            append(listString);
+        }
+        else // Если не в начало или конец строки.
+        {
+            Coordinate position = convert(index);
+            Coordinate nextPosition = convert(index + 1);
+            if (position.item == nextPosition.item) // Разрыв блока, если index не является его концом.
+            {
+                divideStringItem(position.index, position.item);
+                listString.lastItem().next = position.item.next;
+                position.item.next = listString.head;
+            }
+            else // Вставка между блоками.
+            {
+                listString.lastItem().next = nextPosition.item;
+                position.item.next = listString.head;
+            }
+        }
+    }
+
+    private void divideStringItem(int index, StringItem stringItem) // Делит блок на два в указанной позиции.
+    {
+        StringItem copied = new StringItem(stringItem, index, stringItem.size - 1);
+        copied.next = stringItem.next;
+        stringItem.next = copied;
+        stringItem.size = index;
+    }
+
+    private void appendListString(ListString listString) // Обобщенный метод вставки указанной строки (ListString) в конец изначальной.
+    {
+        if (empty())
+        {
+            head = listString.head;
+        }
+        StringItem lastItem = lastItem();
+        lastItem.next = listString.head;
+    }
+
+    private ListString subListString(int start, int end) // Обобщенный метод, возвращающий подстроку.
+    {
+        Coordinate posStart = convert(start);
+        Coordinate posEnd = convert(end-1);
+        if (posStart.item == null || posEnd.item == null || end <= start)
+        {
+            throw new OutOfBoundsException();
+        }
+        ListString substring = new ListString();
+        StringItem currentItem = posStart.item;
+        StringItem currentSubstringItem = null;
+
+        if (posStart.item == posEnd.item) // Если начало и конец в одном блоке.
+        {
+            substring.head = new StringItem(currentItem, posStart.index, posEnd.index);
+            return substring;
+        }
+
+        substring.head = new StringItem(currentItem, posStart.index, currentItem.size - 1); // Создает первый блок подстроки.
+        currentSubstringItem = substring.head;
+
+        while (currentItem != posEnd.item) // Пока не дошли до конечного блока.
+        {
+            currentSubstringItem.next = new StringItem(currentItem.next, 0, currentItem.next.size - 1);
+            currentSubstringItem = currentSubstringItem.next;
+            currentItem = currentItem.next;
+        }
+
+        currentSubstringItem.next = new StringItem(currentItem, 0, posEnd.index);
+        return substring;
+    }
+
+    private static void copyArray(char[] fromArray, char[] toArray, int start, int end, int toStart) // Копируем символы со start по end включительно.
+    {
+        if (end - start > toArray.length - 1 - toStart)
+        {
+            return;
+        }
+        for (int i = 0; i <= end - start; i++)
+        {
+            toArray[toStart + i] = fromArray[start + i];
+        }
+    }
+
+    private static class Coordinate // Хранение позиции символа по блоку и индексу.
+    {
+        private StringItem item;
+        private int index;
+
+        private Coordinate(StringItem item, int index)
+        {
+            this.item = item;
+            this.index = index;
+        }
+    }
+
+    private StringItem lastItem() // Возвращает ссылку на последний блок.
+    {
+        StringItem currentItem = head;
+        while (currentItem != null)
+        {
+            if (currentItem.next != null)
+            {
+                currentItem = currentItem.next;
+            }
+            else
+            {
+                return currentItem;
+            }
+        }
+        return null;
+    }
+
+    private Coordinate convert(int userIndex) // Преобразует индекс, вводимый пользователем в "координаты" вида [item; index].
+    {
+        StringItem currentItem = head;
+        if (currentItem == null)
+        {
+            return new Coordinate(null, 0);
+        }
+        int sum = head.size;
+        while (sum < userIndex + 1)
+        {
+            currentItem = currentItem.next;
+            if (currentItem == null)
+            {
+                return new Coordinate(null, 0);
+            }
+            sum += currentItem.size;
+        }
+        return new Coordinate(currentItem, (currentItem.size - (sum - userIndex)));
+    }
+
+    private StringItem head;
+
+    private boolean empty()
+    {
+        return (head == null);
+    }
+
+    private static class StringItem // Класс блока.
+    {
+        private char[] arrayString;
+        private int size;
+        private  StringItem next;
+        private static final int SIZE = 16;
+
+        private StringItem()
+        {
+            arrayString = new char[SIZE];
+            size = (byte) 0;
+            next = null;
+        }
+
+        private StringItem(StringItem fromItem, int startIndex, int endIndex)
+        {
+            arrayString = new char[SIZE];
+            copyArray(fromItem.arrayString, arrayString, startIndex, endIndex, 0);
+            size = endIndex - startIndex + 1;
+            next = null;
+        }
+
+        private void mergeWithNextItem() // Метод склеивания блоков.
+        {
+            StringItem nextItem = next;
+            if (next == null)
+            {
+                return;
+            }
+            copyArray(nextItem.arrayString, arrayString, 0,nextItem.size - 1, size);
+            // Копирование символов из следующего блока в текущий.
+            size += nextItem.size;
+            next = nextItem.next;
+        }
+    }
+}
